@@ -1,0 +1,4 @@
+sudo insmod hello_world_module.ko - to load the kernel module
+lsmod - to see the modules were inserted
+sudo rmmod hello_world_module.ko - to unload the kernel module
+modinfo hello_world_module.ko - to get module info
