@@ -1,0 +1,45 @@
+The device file is used for communication between the user space and hardware
+
+all device files are stored under /dev.
+eg: /dev/ttyS0 corresponds to first serial port.
+
+there can be pseudo devices also which may not correspond to actual devices. eg: /dev/null
+
+mknod command can be used to manually create a device file for a driver.
+
+debian@BeagleBone:~/device_drivers/L3-major_minor_number$ sudo mknod -m 666 /dev/my_device c 236 0
+(236 is major number and 0 is minor number)
+debian@BeagleBone:~/device_drivers/L3-major_minor_number$ ls -l /dev/ | grep "my_device"
+crw-rw-rw- 1 root root    236,   0 May 28 20:41 my_device
+
+
+To automatically create a device file 
+
+1. Include linux/device.h and linux/kdev_t.h
+2. Create struct Class.
+3. Create Device with the class created in step 2
+
+
+To create class
+struct class * class_create(struct module *owner, const char *name);
+
+To free the pointer created
+void class_detroy (struct class * cls);
+
+To create device
+struct device *device_create(struct *class, struct device *parent, dev_t devt, void *drvdata, const char *fmt, ...);
+
+drvdata = the data to be added to the device for callbacks
+fmt - string for the device's name
+
+
+To destroy the device
+void device_destroy (struct class * class, dev_t devt);
+
+sudo insmod device_file.ko
+debian@BeagleBone:/sys/class/my_class$ ls -lh
+total 0
+lrwxrwxrwx 1 root root 0 May 28 21:02 my_device -> ../../devices/virtual/my_class/my_device
+
+debian@BeagleBone:/sys/class/my_class$ ls -l /dev/ | grep "my_device"
+crw-rw-rw- 1 root root    236,   0 May 28 20:41 my_device
