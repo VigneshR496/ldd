@@ -1,0 +1,27 @@
+module_param(name, type, param) - macro used to initialize the arguments
+module_param_array(name, type, num, perm) - macro used to send array as argument to linux device driver
+module_param_cb(name, ops, arg, perm) - macro to register the callback when argument is changed.
+
+ops - kernel_param_ops which should have two callback functions for set and get
+
+
+sudo insmod hello_world.ko valueETX=14 nameETX="Vignesh" arr_valueETX=100,101,102,106
+dmesg logs -
+[ 3957.309969] ValueETX = 14
+[ 3957.309993] cb_valueETX = 0
+[ 3957.310001] NameETX = Vignesh
+[ 3957.310008] Arr_value[0] = 100
+[ 3957.310015] Arr_value[1] = 101
+[ 3957.310021] Arr_value[2] = 102
+[ 3957.310028] Arr_value[3] = 106
+[ 3957.310034] Kernel Module Inserted Successfully...
+
+
+sudo sh -c "echo 13 > /sys/module/hello_world/parameters/cb_valueETX"
+[ 4437.184836] Callback function called...
+[ 4437.184867] New value of cb_valueETX = 13
+
+
+sudo sh -c "cat /sys/module/hello_world/parameters/cb_valueETX"
+13
+debian@BeagleBone:~/device_drivers/passing_args$
