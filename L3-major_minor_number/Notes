@@ -24,3 +24,5 @@ cat /proc/devices
 sudo insmod dynamic.ko
 [14721.684057] Major = 236, Minor = 0
 [14721.684080] Kernel Module Inserted Successfully...
+
+
