@@ -1,0 +1,10 @@
+high memory - low memory in linux - https://unix.stackexchange.com/questions/4929/what-are-high-memory-and-low-memory-on-linux
+
+functions used in this exercise
+    void *kmalloc(size_t size, gfp_t flags); // used for dynamic memory allocation - refer linux/gfp.h for the list of flags
+    void kfree(const void *objp); // used to free the dynamically allocated memory
+    unsigned long copy_from_user(void *to, const void __user *from, unsigned long  n); // copy block of data from user
+        space to kernel space
+    unsigned long copy_to_user(const void __user *to, const void *from, unsigned long  n); // copy block of data from
+        kernel space to user space
+
