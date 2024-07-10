@@ -1,0 +1,26 @@
+In Linux all devices/hardware peripherals are treated as files, and all character and block devices have a Major and Minor number.
+
+
+Major number (12-bit) can refer to the driver and minor number(20-bit) can refer to multiple devices which use the same driver.
+
+
+int register_chrdev_region(dev_t first, unsigned int count, char *name); - used to assign static major number for our driver
+
+int alloc_chrdev_region(dev_t *dev, unsigned int first minor, unsigned int count, char *name); - used to get major number dynamically assigned
+
+
+void unregister_chrdev_region(dev_t first, unsigned int count); to free the device numbers.
+
+sudo insmod static.ko
+[14368.714210] Major = 235, Minor = 0
+[14368.714233] Kernel Module Inserted Successfully...
+
+
+cat /proc/devices
+...
+235 My_Dev
+...
+
+sudo insmod dynamic.ko
+[14721.684057] Major = 236, Minor = 0
+[14721.684080] Kernel Module Inserted Successfully...

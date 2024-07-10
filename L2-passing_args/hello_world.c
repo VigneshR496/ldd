@@ -3,7 +3,7 @@
 *
 *  \details    Simple hello world driver
 *
-*  \author     EmbeTronicX
+*  \author     Vignesh R
 *
 * *******************************************************************************/
 #include<linux/kernel.h>
