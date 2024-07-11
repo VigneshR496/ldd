@@ -1,0 +1,62 @@
+Normal driver runs in process context.
+ISR runs in interrupt context.
+
+Kernel code running in process context is preemptible. An interrupt context, however,
+always runs to completion and is not preemptible.
+
+Interrupt context cannot do the following
+    Go to sleep or relinquish the processor
+    Acquire a mutex
+    Perform time-consuming tasks
+    Access user space virtual memory
+
+If interrupt handler needs to do a more complex task it is split into two halves
+    Top half - does the quick and minimum handling for the interrupt
+    Bottom half - does the remaining but not very fast required operations for the interrupt
+
+There are 4 bottom half mechanisms are available in Linux:
+    Workqueue
+    Threaded IRQs
+    Softirq
+    Tasklets
+
+Interrupt handlers can not be called repeatedly. When a handler is already executing, its corresponding IRQ must be disabled until the handler is done.
+
+Interrupt handlers can be interrupted by higher authority handlers. If you want to avoid being interrupted by a highly qualified handler, you can mark the interrupt handler as a fast handler. However, if too many are marked as fast handlers, the performance of the system will be degraded because the interrupt latency will be longer.
+
+
+To request IRQ
+request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags, const char *name, void *dev_id)
+
+To release a registered IRQ
+free_irq(unsigned int irq, void *dev_id)
+
+To enable IRQ
+enable_irq(unsigned int irq)
+
+To disable IRQ
+disable_irq(unsigned int irq)
+
+Disable an IRQ from issuing an interrupt, but wait until there is an interrupt handler being executed.
+disable_irq_nosync(unsigned int irq)
+
+in_irq() - returns true when in interrupt handler
+in_interrupt() - returns truw when in interrupt handler or in bottom half
+
+Interrupt Handler flags
+IRQF_DISABLED
+IRQF_SAMPLE_RANDOM
+IRQF_TIMER
+IRQF_SHARED
+
+
+Load the driver using sudo insmod driver.ko
+To trigger the interrupt read device file (sudo cat /dev/etx_device)
+Now see the Dmesg (dmesg)
+linux@embetronicx-VirtualBox: dmesg
+[19743.366386] Major = 246 Minor = 0
+[19743.370707] Device Driver Insert...Done!!!
+[19745.580487] Device File Opened...!!!
+[19745.580507] Read function
+[19745.580531] Shared IRQ: Interrupt Occurred
+[19745.580540] Device File Closed...!!!
