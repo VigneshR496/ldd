@@ -1,0 +1,36 @@
+OS seperates the virutal memory into kernel space and userspace
+
+There are many ways to communicate between user space and kernel space and one of them is IOCTL (Input and Output Control)
+
+Steps involved in IOCTL
+    Create IOCTL command in driver
+    Write IOCTL function in the driver
+    Create IOCTL command in a userspace application
+    Use the IOCTL system call in userspace application
+
+To define a IOCTL name
+#define "ioctl name" __IOX("magic number","command number","argument type")
+
+
+ioctl function that needs be added in the driver
+int  ioctl(struct inode *inode,struct file *file,unsigned int cmd,unsigned long arg)
+
+
+In user space application, we have to define the IOCTL command similar to how it was done in the driver
+
+to call the ioctl command from userspace application
+long ioctl( "file descriptor","ioctl command","Arguments");
+
+
+
+sudo ./test_user_space 
+*********************************
+*******WWW.EmbeTronicX.com*******
+
+Opening Driver
+Enter the Value to send
+2
+Writing Value to Driver
+Reading Value from Driver
+Value is 2
+Closing Driver
