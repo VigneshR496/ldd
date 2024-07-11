@@ -1,0 +1,24 @@
+A wait queue is used to sleep and wake up tasks.
+
+3 steps in wait queue
+    Initializing Waitqueue
+    Queuing (Put the task to sleep)
+    Waking up Queued Task
+
+
+TODO: Figure how to send a signal to wake up a task
+
+
+debian@BeagleBone:~/device_drivers/L9-wait_queue$ sudo insmod wait_queue_demo.ko 
+debian@BeagleBone:~/device_drivers/L9-wait_queue$ sudo cat /dev/my_device
+dmesg
+[ 5029.526969] Major = 236, Minor = 0
+[ 5029.538213] Thread Created successfully
+[ 5029.538240] Device Driver Inserted Successfully...
+[ 5029.542108] Waiting For Event...
+[ 5031.485894] Driver Open function called.
+[ 5031.486018] Driver Read Function Called...!!!
+[ 5031.486124] Debug 0 -512
+[ 5031.486133] Event Came From Read Function - 1
+[ 5031.486140] Waiting For Event...
+[ 5031.486259] Driver release function called.
