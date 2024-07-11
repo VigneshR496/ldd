@@ -1,0 +1,52 @@
+procfs (Process Filesystem):
+Purpose:
+
+The /proc filesystem (procfs) is used to expose information about processes and other system information.
+It provides a mechanism to access process-specific information (such as process IDs, memory usage, CPU usage) and kernel-related information (such as kernel parameters, hardware information).
+Contents:
+
+The contents of /proc are generated on-the-fly and reflect the current state of the system.
+Examples include /proc/cpuinfo (CPU information), /proc/meminfo (memory information), and /proc/[pid] directories (information about specific processes).
+Interface:
+
+The procfs provides a text-based interface that is easy to read and manipulate using standard user-space tools like cat, grep, and echo.
+Examples:
+
+Reading system information: cat /proc/cpuinfo
+Reading process information: cat /proc/1234/status (information about process with PID 1234)
+Location:
+
+The procfs filesystem is mounted at /proc.
+sysfs (System Filesystem):
+Purpose:
+
+The /sys filesystem (sysfs) is used to expose the system's device tree and kernel objects, providing a unified view of the kernel's device model.
+It helps in managing devices, device drivers, and other kernel subsystems.
+Contents:
+
+The contents of /sys represent the hierarchy of devices and their attributes. It provides a structured view of the kernel's device model.
+Examples include /sys/class (device classes), /sys/block (block devices), and /sys/devices (physical devices).
+Interface:
+
+The sysfs provides a hierarchical view with directories and files, where each file typically represents a single attribute of a device.
+It is designed to be both human-readable and machine-parseable.
+Examples:
+
+Reading a device attribute: cat /sys/class/net/eth0/operstate
+Setting a device attribute: echo "1" > /sys/class/leds/led0/brightness
+Location:
+
+The sysfs filesystem is mounted at /sys.
+Kernel Space vs User Space:
+Kernel Space:
+
+Both procfs and sysfs are implemented in the kernel space, meaning they are part of the kernel and provide interfaces to kernel data structures.
+Kernel space refers to the memory area where the core of the operating system runs and has unrestricted access to hardware.
+User Space:
+
+The files and directories exposed by procfs and sysfs are accessible from user space, meaning user programs can read from and write to these files to interact with the kernel.
+User space refers to the memory area where user applications run, with restricted access to the system hardware and kernel memory.
+Summary:
+procfs is primarily used for process and system information, providing a straightforward text-based interface.
+sysfs is used for representing the device model and kernel objects, offering a hierarchical and attribute-based view.
+Both filesystems are implemented in kernel space but are accessible from user space for interaction with the kernel.
