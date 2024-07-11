@@ -1,0 +1,32 @@
+Procfs is a virtual filesystem in memory
+
+It can act as a bridge connecting the user space and the kernel space.
+Userspace programs can use proc files to read the information exported by the kernel.
+
+A proc entry can be used read and write data from/to kernel space
+
+To create a directory under /proc
+struct proc_dir_entry *proc_mkdir(const char *name, struct proc_dir_entry *parent)
+
+To create a proc entry
+struct proc_dir_entry *proc_create ( const char *name, umode_t mode, struct proc_dir_entry *parent, const struct proc_operations *proc_fops )
+
+to remove proc entry
+proc_remove(struct proc_dir_entry *parent)
+
+
+debian@BeagleBone:~/device_drivers/L8-procfs$ echo "Hello World" >  /proc/eg_proc_dir/eg_proc 
+debian@BeagleBone:~/device_drivers/L8-procfs$ cat /proc/eg_proc_dir/eg_proc 
+Hello World
+
+
+One time read mechanism is required inside the read_proc function otherwise the file is not closed as long as we press ctrl+C, as long return 0 is not done the length of the buffer is printed.
+if(len)
+{
+len=0;
+}
+else
+{
+len=1;
+return 0;
+}
