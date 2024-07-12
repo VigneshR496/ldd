@@ -42,3 +42,4 @@ work_pending( work );
 delayed_work_pending( work );
     To find if a work is pending.
 
+In the above method we have used the global workqueue of linux and created and scheduled work to them.

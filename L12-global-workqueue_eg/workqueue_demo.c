@@ -27,6 +27,9 @@
 #define IRQ_NO 11
  
  
+/*Creating work by Dynamic Method */
+// static struct work workqueue;
+
 void workqueue_fn(struct work_struct *work); 
  
 /*Creating work by Static Method */
@@ -191,6 +194,10 @@ static int __init etx_driver_init(void)
                 printk(KERN_INFO"Cannot create sysfs file......\n");
                 goto r_sysfs;
         }
+
+        /*Creating work by Dynamic Method */
+        // INIT_WORK(&workqueue,workqueue_fn);
+
         if (request_irq(IRQ_NO, irq_handler, IRQF_SHARED, "etx_device", (void *)(irq_handler))) {
             printk(KERN_INFO "my_device: cannot register IRQ ");
                     goto irq;
@@ -219,6 +226,9 @@ r_class:
 static void __exit etx_driver_exit(void)
 {
         free_irq(IRQ_NO,(void *)(irq_handler));
+        flush_work(&my_work);
+        /* Destroy workqueue is required in case of Dynamic method only*/
+        // destroy_workqueue(my_wq);
         kobject_put(kobj_ref); 
         sysfs_remove_file(kernel_kobj, &etx_attr.attr);
         device_destroy(dev_class,dev);
