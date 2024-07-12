@@ -1,0 +1,27 @@
+To create a workqueue
+struct workqueue_struct *create_workqueue( name );
+
+To destory a workqueue
+void destroy_workqueue( struct workqueue_struct * );
+
+You should use create_singlethread_workqueue() for creating a workqueue when you want to create only a single thread for all the processors.
+
+The internal definitions
+#define create_workqueue(name)                    
+        alloc_workqueue("%s", WQ_MEM_RECLAIM, 1, (name))
+#define create_singlethread_workqueue(name)       
+        alloc_workqueue("%s", WQ_UNBOUND | WQ_MEM_RECLAIM, 1, (name))
+
+To allocate a workqueue with specified parameters
+alloc_workqueue ( fmt, flags, max_active );
+Refer Embedtronix for the different flags and meaning
+
+To queue the work in the workqueue
+int queue_work( struct workqueue_struct *wq, struct work_struct *work );
+
+To put work on a specific CPU
+int queue_work_on( int cpu, struct workqueue_struct *wq, struct work_struct *work );
+
+Similar functions to above but with delay
+int queue_delayed_work( struct workqueue_struct *wq,struct delayed_work *dwork, unsigned long delay );
+int queue_delayed_work_on( int cpu, struct workqueue_struct *wq,struct delayed_work *dwork, unsigned long delay );
