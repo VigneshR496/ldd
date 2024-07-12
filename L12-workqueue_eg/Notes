@@ -1,0 +1,44 @@
+Workqueue in linux kernel is one of the four bottom half mechanisms.
+
+Workqueue allows users to create a kernel thread and bind work to the kernel thread.
+
+Normally, it is easy to decide between using workqueue and softirq/tasklet:
+
+If the deferred work needs to sleep, then workqueue is used.
+If the deferred work needs not sleep, then softirq or tasklet are used.
+
+Two ways to implement workqueue in Linux 
+    Global workqueue (Static/Dynamic)
+    Creating own workqueue
+
+Initialize work using Static Method
+DECLARE_WORK(name, void (*func)(void *))
+
+Schedule work to workqueue
+
+int schedule_work( struct work_struct *work );
+    This function puts a job in the kernel-global workqueue if it was not already queued and leaves it in the same position on the kernel-global workqueue otherwise.
+
+int scheduled_delayed_work( struct delayed_work *dwork, unsigned long delay );
+    After waiting for a given time this function puts a job in the kernel-global workqueue.
+
+int schedule_work_on( int cpu, struct work_struct *work );
+    This puts a job on a specific CPU.
+
+int scheduled_delayed_work_on(int cpu, struct delayed_work *dwork, unsigned long delay );
+    After waiting for a given time this puts a job in the kernel-global workqueue on the specified CPU.
+
+int flush_work( struct work_struct *work );
+    To flush a particular work item and block until the work is complete, you can make a call to flush_work.
+
+void flush_scheduled_work( void );
+    To flush the kernel-global work queue.
+
+int cancel_work_sync( struct work_struct *work );
+int cancel_delayed_work_sync( struct delayed_work *dwork );
+    To cancel normal and delayed work in workqueue.
+
+work_pending( work );
+delayed_work_pending( work );
+    To find if a work is pending.
+
