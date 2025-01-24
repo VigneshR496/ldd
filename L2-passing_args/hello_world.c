@@ -32,7 +32,7 @@ int notify_param(const char *val, const struct kernel_param *kp) {
   return -1;
 }
 
-const struct kernel_param_ops my_param_ops = {
+const struct kerparam_get_intnel_param_ops my_param_ops = {
     .set = &notify_param,  // our custom setter
     .get = &param_get_int, // standard getter
 };

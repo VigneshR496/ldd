@@ -1,0 +1,40 @@
+
+Read/Write spinlock are similar to normal spinlock but it has separate locks for read and write.
+
+In Read Write spinlock multiple readers are permitted at the same time but only one writer.
+	(i.e) If a writer has the lock, no reader is allowed to enter the critical section.
+	If only a reader has the lock, then multiple readers are permitted in the critical section.
+	
+Initialize spinlock
+
+	static method
+	DEFINE_RWLOCK(etx_rwlock);
+	
+	dynamic method
+	rwlock_t etx_rwlock; 
+	rwlock_init(&etx_rwlock);
+	
+API's for locking between user context or between two bottom halves:
+	read_lock(rwlock_t *lock) - This will take the lock if it is free, otherwise, it’ll spin until that lock is free
+	read_unlock(rwlock_t *lock) - It does the reverse of the lock. It will unlock which is locked by the above call.
+	
+	write_lock(rwlock_t *lock) - same as above
+	write_unlock(rwlock_t *lock) - same as above
+	
+API's for locking between user context and bottom half:
+	read_lock_bh(rwlock_t *lock)
+	read_unlock_bh(rwlock_t *lock)
+	write_lock_bh(rwlock_t *lock)
+	write_unlock_bh(rwlock_t *lock)
+	
+API's for locking between hard irq and user context:
+	read_lock_irq(rwlock_t *lock) - This will disable interrupts on that CPU, then grab the lock
+	read_unlock_irq(rwlock_t *lock) - It will release the lock and re-enables the interrupts which are disabled by the above call.
+	write_lock_irq(rwlock_t *lock) - This will disable interrupts on that CPU, then grab the lock.
+	write_unlock_irq(rwlock_t *lock) - It will release the lock and re-enables the interrupts which are disabled by the above call.
+	
+Better API's for locking between hard irq and user context or between hard irqs:
+	read_lock_irqsave( rwlock_t *lock, unsigned long flags ) - This will save whether interrupts were on or off in a flags word and grab the lock.
+	read_unlock_irqrestore( rwlock_t *lock, unsigned long flags ) - This will release the read/write spinlock and restores the interrupts using the flags argument.
+	write_lock_irqsave( rwlock_t *lock, unsigned long flags ) - This will save whether interrupts were on or off in a flags word and grab the lock.
+	write_unlock_irqrestore( rwlock_t *lock, unsigned long flags ) - This will release the read-write spinlock and restores the interrupts using the flags argument.

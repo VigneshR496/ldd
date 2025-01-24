@@ -1,0 +1,19 @@
+mutex is used to avoid race condition between threads and for resource synchronization
+
+struct mutex {
+    atomic_t        count;
+    spinlock_t      wait_lock;
+    struct list_head    wait_list;
+};
+
+mutex structure defined in Linux/include/linux/mutex.h
+DEFINE_MUTEX(name) - macro to initialize mutex in static method
+mutex_init(struct mutex *lock); - to initialize mutex in dynamix method
+    struct mutex *lock – the mutex to be initialized.
+
+void mutex_lock(struct mutex *lock); - to lock the mutex, the task sleeps if the mutex is locked already until it is released
+int mutex_lock_interruptible(struct mutex *lock); - same as mutex_lock, but if a If a signal arrives while waiting for the lock then this function returns -EINTR.
+int mutex_trylock(struct mutex *lock); - will try to acquire mutex, without waiting, returns 1 if mutex is acquired successfully, 0 on contention
+void mutex_unlock(struct mutex *lock); - to release a mutex
+
+int mutex_is_locked(struct mutex *lock); - check the status of mutex. 1 - locked, 0 - released

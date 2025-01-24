@@ -1,0 +1,71 @@
+Every time a timer interrupt occurs, the value of an internal kernel counter is incremented.
+	The counter is initialized to 0 at the system boot, so it represents the number of clock ticks since the last boot.
+	
+Linux Kernel provides the driver to create timers that are not periodic by default, register the timers and delete the timers.
+
+kernel timer structure in <linux/timer.h> -> check the implementation as well
+
+struct timer_list {
+    /* ... */
+    unsigned long expires;
+    void (*function)(unsigned long);
+    unsigned long data;
+};
+
+To initialize timer:
+	void fastcall init_timer ( struct timer_list * timer);
+
+Instead of manually initializing the struct timer_list we can use this api instead:
+	void timer_setup(timer, function, data);
+	
+Macro to initialize the timer_list struct for us:
+	DEFINE_TIMER(_name, _function, _expires, _data)
+	
+To add a timer:
+	void add_timer(struct timer_list *timer);
+
+To modify a timer:
+	int mod_timer(struct timer_list * timer, unsigned long expires);
+	
+	this is equivalent to 
+	
+	del_timer(timer);
+	timer->expires = expires;
+	add_timer(timer);
+	
+stop/remove timer:
+	int del_timer(struct timer_list * timer);
+	
+	
+remove timer and wait for the callback function to complete:	
+	int del_timer_sync(struct timer_list * timer);
+	
+	Return:
+		The function returns whether it has deactivated a pending timer or not.
+		0 del_timer_sync of an inactive timer
+		1 del_timer_sync of an active timer
+	
+	Note: callers must prevent restarting the timer, otherwise this function is meaningless.
+	It must not be called from interrupt contexts. The caller must not hold locks that would prevent the
+	completion of the timer's handler. The timer's handler must not call add_timer_on.
+	Upon exit, the timer is not queued and the handler is not running on any CPU.
+
+To check whether the timer is pending or not:
+	int timer_pending(const struct timer_list * timer);
+	Return:
+		0  timer is not pending
+		1  timer is pending
+	
+Jiffies are the unit of time measurement used by the Linux kernel.
+The kernel maintains a global counter called jiffies that increments at every timer tick (interrupt from the system timer).
+
+it is better to use kernel timeout macros to set the expire value. eg: jiffies + msecs_to_jiffies(TIMEOUT)
+
+msecs_to_jiffies is used to convert msecs to jiffies, since time period in which jiffies 
+
+
+The timer callback function runs in interrupt context so we cannot perform the below actions in the callback function
+	Go to sleep or relinquish the processor
+	Acquire a mutex
+	Perform time-consuming tasks
+	Access user space virtual memory

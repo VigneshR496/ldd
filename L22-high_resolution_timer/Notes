@@ -1,0 +1,83 @@
+Cascading timer wheel is used for the kernel timer
+
+
+Cascading timer wheel is a data structure, it has multiple timer wheels with a specific range of time slots.
+Eg:
+	Wheel 1: Handles timers for 0-255 milliseconds (256 slots).
+	Wheel 2: Handles timers for 256-65,535 milliseconds (another 256 slots).
+	Wheel 3: Handles timers for 65,536-16,777,215 milliseconds, and so on.
+	
+For HR timer the data structure used is red-black tree, red-black tree is also available in the linux kernel as a library.
+
+(go through red-black tree in DS course)
+
+Kernel Timers are bound to jiffies. But this High Resolution Timer (HRT) is bound with 64-bit nanoseconds resolution.
+
+In kernel config file under /boot directory the following module has to be enabled CONFIG_HIGH_RES_TIMERS=y.
+Check the contents of /proc/timer_list. For example, the .resolution entry showing 1 nanosecond and event_handler as hrtimer_interrupt in /proc/timer_list indicate that high resolution timers are available.
+Get the clock resolution using the clock_getres system call.
+
+
+Primarily this timer is used in user-space applications that utilize nanosleep, posix-timers etc.
+
+
+High resolution timer node in #include <linux/hrtimer.h>
+struct hrtimer {
+  struct rb_node node;
+  ktime_t expires;
+  int (* function) (struct hrtimer *);
+  struct hrtimer_base * base;
+};
+where,
+	node : red black tree node for time ordered insertion
+	expires : The absolute expiry time in the hr timers internal representation.
+			  The time is related to the clock on which the timer is based.
+	function : timer expiry callback function.
+	base : pointer to the timer base (per CPU and per clock)
+
+The hrtimer structure must be initialized by init_hrtimer_#CLOCKTYPE.
+
+ktime_t is used to store time value in seconds.
+ktime_set(long secs, long nanosecs); - function to get ktime_t from seconds and nanoseconds
+
+To initialize a hrtimer:
+	void hrtimer_init( struct hrtimer *timer, clockid_t clock_id, enum hrtimer_mode mode );
+	where,
+		timer : the timer to be initialized
+		clock_id : the clock to be used
+		The clock to use is defined in ./include/linux/time.h and represents the various clocks that the system supports
+		
+		CLOCK_MONOTONIC: a clock that is guaranteed always to move forward in time,
+			but which does not reflect “wall clock time” in any specific way.
+		CLOCK_REALTIME: which matches the current real-world time.
+		
+		mode : timer mode absolute (HRTIMER_MODE_ABS) or relative (HRTIMER_MODE_REL)
+
+To start high resolution timer:
+	int hrtimer_start(struct hrtimer *timer, ktime_t time, const enum hrtimer_mode mode)
+		time is the expiry time
+		
+To stop high resolution timer:
+	int hrtimer_cancel(struct hrtimer * timer);
+		0 - timer was not active
+		1 - timer was active
+
+	int hrtimer_try_to_cancel(struct hrtimer * timer);
+		-1 - when the timer is currently executing the cb function and cannot be skipped
+
+
+To change the high resolution timer expiry:
+	u64 hrtimer_forward(struct hrtimer * timer, ktime_t now, ktime_t interval);
+		This will forward the timer expiry so it will expire in the future by the given interval.
+
+	u64 hrtimer_forward_now(struct hrtimer *timer, ktime_t interval);
+		This will forward the timer expiry so it will expire in the future from now by the given interval.
+		
+To get the remaining time of the timer:
+	ktime_t hrtimer_get_remaining(const struct hrtimer * timer);
+	
+Helper function to check whether the callback is running:
+	int hrtimer_callback_running(struct hrtimer *timer);
+
+To get the current time of the given timer:
+	ktime_t hrtimer_cb_get_time(struct hrtimer *timer);

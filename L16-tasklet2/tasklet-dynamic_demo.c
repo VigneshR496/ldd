@@ -1,11 +1,11 @@
-/***************************************************************************//**
+/****************************************************************************//**
 *  \file       driver.c
 *
-*  \details    Simple Linux device driver (Own Workqueue)
+*  \details    Simple linux driver (Tasklet Dynamic method)
 *
 *  \author     EmbeTronicX
 *
-*******************************************************************************/
+* *******************************************************************************/
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/module.h>
@@ -19,33 +19,29 @@
 #include<linux/kobject.h> 
 #include <linux/interrupt.h>
 #include <asm/io.h>
-#include <linux/workqueue.h>            // Required for workqueues
 #include <linux/err.h>
-
+ 
 #define IRQ_NO 11
  
-static struct workqueue_struct *own_workqueue;
+void tasklet_fn(unsigned long); 
+
+/* Tasklet by Dynamic Method */
+struct tasklet_struct *tasklet = NULL;
  
-static void workqueue_fn(struct work_struct *work); 
  
-static DECLARE_WORK(work, workqueue_fn);
- 
- 
-/*Workqueue Function*/
-static void workqueue_fn(struct work_struct *work)
+/*Tasklet Function*/
+void tasklet_fn(unsigned long arg)
 {
-    printk(KERN_INFO "Executing Workqueue Function\n");
-    return;
-        
+        printk(KERN_INFO "Executing Tasklet Function : arg = %ld\n", arg);
 }
  
  
 //Interrupt handler for IRQ 11. 
 static irqreturn_t irq_handler(int irq,void *dev_id) {
-        printk(KERN_INFO "Shared IRQ: Interrupt Occurred\n");
-        /*Allocating work to queue*/
-        queue_work(own_workqueue, &work);
-
+        printk(KERN_INFO "Shared IRQ: Interrupt Occurred");
+        /*Scheduling Task to Tasklet*/
+        tasklet_schedule(tasklet); 
+        
         return IRQ_HANDLED;
 }
  
@@ -57,14 +53,11 @@ dev_t dev = 0;
 static struct class *dev_class;
 static struct cdev etx_cdev;
 struct kobject *kobj_ref;
-
-/*
-** Function Prototypes
-*/ 
+ 
 static int __init etx_driver_init(void);
 static void __exit etx_driver_exit(void);
  
-/*************** Driver Fuctions **********************/
+/*************** Driver Functions **********************/
 static int etx_open(struct inode *inode, struct file *file);
 static int etx_release(struct inode *inode, struct file *file);
 static ssize_t etx_read(struct file *filp, 
@@ -72,7 +65,7 @@ static ssize_t etx_read(struct file *filp,
 static ssize_t etx_write(struct file *filp, 
                 const char *buf, size_t len, loff_t * off);
  
-/*************** Sysfs Fuctions **********************/
+/*************** Sysfs Functions **********************/
 static ssize_t sysfs_show(struct kobject *kobj, 
                 struct kobj_attribute *attr, char *buf);
 static ssize_t sysfs_store(struct kobject *kobj, 
@@ -93,8 +86,8 @@ static struct file_operations fops =
 };
 
 /*
-** This fuction will be called when we read the sysfs file
-*/  
+** This function will be called when we read the sysfs file
+*/
 static ssize_t sysfs_show(struct kobject *kobj, 
                 struct kobj_attribute *attr, char *buf)
 {
@@ -103,8 +96,8 @@ static ssize_t sysfs_show(struct kobject *kobj,
 }
 
 /*
-** This fuction will be called when we write the sysfsfs file
-*/ 
+** This function will be called when we write the sysfsfs file
+*/   
 static ssize_t sysfs_store(struct kobject *kobj, 
                 struct kobj_attribute *attr,const char *buf, size_t count)
 {
@@ -114,17 +107,17 @@ static ssize_t sysfs_store(struct kobject *kobj,
 }
 
 /*
-** This fuction will be called when we open the Device file
-*/ 
+** This function will be called when we open the Device file
+*/   
 static int etx_open(struct inode *inode, struct file *file)
 {
         printk(KERN_INFO "Device File Opened...!!!\n");
         return 0;
 }
-
+ 
 /*
-** This fuction will be called when we close the Device file
-*/  
+** This function will be called when we close the Device file
+*/   
 static int etx_release(struct inode *inode, struct file *file)
 {
         printk(KERN_INFO "Device File Closed...!!!\n");
@@ -132,8 +125,8 @@ static int etx_release(struct inode *inode, struct file *file)
 }
 
 /*
-** This fuction will be called when we read the Device file
-*/ 
+** This function will be called when we read the Device file
+*/  
 static ssize_t etx_read(struct file *filp, 
                 char __user *buf, size_t len, loff_t *off)
 {
@@ -143,13 +136,13 @@ static ssize_t etx_read(struct file *filp,
 }
 
 /*
-** This fuction will be called when we write the Device file
+** This function will be called when we write the Device file
 */
 static ssize_t etx_write(struct file *filp, 
                 const char __user *buf, size_t len, loff_t *off)
 {
         printk(KERN_INFO "Write Function\n");
-        return 0;
+        return len;
 }
  
 /*
@@ -194,15 +187,21 @@ static int __init etx_driver_init(void)
                 goto r_sysfs;
         }
         if (request_irq(IRQ_NO, irq_handler, IRQF_SHARED, "etx_device", (void *)(irq_handler))) {
-            printk(KERN_INFO "my_device: cannot register IRQ \n");
-                    goto irq;
+            printk(KERN_INFO "etx_device: cannot register IRQ ");
+            goto irq;
         }
+
+        /* Init the tasklet bt Dynamic Method */
+        tasklet  = kmalloc(sizeof(struct tasklet_struct),GFP_KERNEL);
+        if(tasklet == NULL) {
+            printk(KERN_INFO "etx_device: cannot allocate Memory");
+            goto irq;
+        }
+        tasklet_init(tasklet,tasklet_fn,0);
  
-        /*Creating workqueue */
-        own_workqueue = create_workqueue("own_wq");
-        
         printk(KERN_INFO "Device Driver Insert...Done!!!\n");
         return 0;
+
  
 irq:
         free_irq(IRQ_NO,(void *)(irq_handler));
@@ -215,7 +214,7 @@ r_device:
         class_destroy(dev_class);
 r_class:
         unregister_chrdev_region(dev,1);
-        cdev_del(&etx_cdev);
+        cdev_del(&etx_cdev);        
         return -1;
 }
 
@@ -224,8 +223,13 @@ r_class:
 */ 
 static void __exit etx_driver_exit(void)
 {
-        /* Delete workqueue */
-        destroy_workqueue(own_workqueue);
+        /* Kill the Tasklet */ 
+        tasklet_kill(tasklet);
+
+        if(tasklet != NULL)
+        {
+          kfree(tasklet);
+        }
         free_irq(IRQ_NO,(void *)(irq_handler));
         kobject_put(kobj_ref); 
         sysfs_remove_file(kernel_kobj, &etx_attr.attr);
@@ -241,5 +245,5 @@ module_exit(etx_driver_exit);
  
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
-MODULE_DESCRIPTION("Simple Linux device driver (Own Workqueue)");
-MODULE_VERSION("1.12");
+MODULE_DESCRIPTION("A simple device driver - Tasklet Dynamic");
+MODULE_VERSION("1.16");

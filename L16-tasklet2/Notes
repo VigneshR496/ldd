@@ -1,0 +1,4 @@
+void tasklet_init( struct tasklet_struct *t,void(*)(unsigned long) func,unsigned long data) - initialize tasklet dynamically
+
+
+testing and rest of the api's is same

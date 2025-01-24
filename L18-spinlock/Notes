@@ -1,0 +1,56 @@
+In the Mutex concept, when the thread is trying to lock or acquire the Mutex which is not available then that thread will
+go to sleep until that Mutex is available. Whereas in Spinlock it is different.
+The spinlock is a very simple single-holder lock. If a process attempts to acquire a spinlock and it is unavailable,
+the process will keep trying (spinning) until it can acquire the lock.
+
+
+If the kernel is running on a uniprocessor and CONFIG_SMP, CONFIG_PREEMPT aren’t enabled while compiling the kernel then spinlock will not be available. Because there is no reason to have a lock when no one else can run at the same time.
+But if you have disabled CONFIG_SMP and enabled  CONFIG_PREEMPT then spinlock will simply disable preemption, which is sufficient to prevent any races.
+
+DEFINE_SPINLOCK(etx_spinlock); - macro to initialize spinlock statically
+#define DEFINE_SPINLOCK(x)      spinlock_t x = __SPIN_LOCK_UNLOCKED(x)
+
+spin_lock_init(&etx_spinlock); - to initialize spinlock dynamically
+
+
+Locking between user context & locking between bottom halves
+spin_lock(spinlock_t *lock) - tried to acquire spinlock, if not available, it will try continuously
+spin_trylock(spinlock_t *lock) - It returns non-zero if it obtains the lock otherwise returns zero.
+spin_unlock(spinlock_t *lock) - Unlock the spinlock
+spin_is_locked(spinlock_t *lock) - check whether lock is available
+
+Locking between user context and bottom halves
+spin_lock_bh(spinlock_t *lock) - It disables soft interrupts on that CPU, then grabs the lock. This has the effect of preventing softirqs, tasklets, and bottom halves from running on the local CPU.
+spin_unlock_bh(spinlock_t *lock) - It will release the lock and re-enables the soft interrupts which are disabled by the above call.
+
+Example:
+//Thread
+int thread_function(void *pv)
+{
+    while(!kthread_should_stop()) {
+        spin_lock_bh(&etx_spinlock);
+        etx_global_variable++;
+        printk(KERN_INFO "In EmbeTronicX Thread Function %lu\n", etx_global_variable);
+        spin_unlock_bh(&etx_spinlock);
+        msleep(1000);
+    }
+    return 0;
+}
+/*Tasklet Function*/
+void tasklet_fn(unsigned long arg)
+{
+        spin_lock_bh(&etx_spinlock);
+        etx_global_variable++;
+        printk(KERN_INFO "Executing Tasklet Function : %lu\n", etx_global_variable);
+        spin_unlock_bh(&etx_spinlock);
+}
+
+Locking between Hard IRQ and bottom half
+spin_lock_irq(spinlock_t *lock) - this will disable interrupts and then acquire lock
+spin_unlock_irq(spinlock_t *lock) - release lock and re-enables interrupts
+
+
+Locking between hard IRQ's
+spin_lock_irqsave( spinlock_t *lock, unsigned long flags ); - saves the interrupt state in  flags and grabs the lock
+spin_unlock_irqrestore( spinlock_t *lock, unsigned long flags ); - release the spinlock and restores the interrupt using flags argument
+

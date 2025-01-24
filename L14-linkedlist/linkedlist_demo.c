@@ -1,11 +1,11 @@
 /***************************************************************************//**
 *  \file       driver.c
 *
-*  \details    Simple Linux device driver (Own Workqueue)
+*  \details    Simple Linux device driver (Kernel Linked List)
 *
 *  \author     EmbeTronicX
 *
-*******************************************************************************/
+* *******************************************************************************/
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/module.h>
@@ -21,49 +21,38 @@
 #include <asm/io.h>
 #include <linux/workqueue.h>            // Required for workqueues
 #include <linux/err.h>
-
+ 
 #define IRQ_NO 11
  
-static struct workqueue_struct *own_workqueue;
- 
-static void workqueue_fn(struct work_struct *work); 
- 
-static DECLARE_WORK(work, workqueue_fn);
- 
- 
-/*Workqueue Function*/
-static void workqueue_fn(struct work_struct *work)
-{
-    printk(KERN_INFO "Executing Workqueue Function\n");
-    return;
-        
-}
- 
- 
-//Interrupt handler for IRQ 11. 
-static irqreturn_t irq_handler(int irq,void *dev_id) {
-        printk(KERN_INFO "Shared IRQ: Interrupt Occurred\n");
-        /*Allocating work to queue*/
-        queue_work(own_workqueue, &work);
-
-        return IRQ_HANDLED;
-}
- 
- 
 volatile int etx_value = 0;
- 
  
 dev_t dev = 0;
 static struct class *dev_class;
 static struct cdev etx_cdev;
 struct kobject *kobj_ref;
-
-/*
-** Function Prototypes
-*/ 
+ 
 static int __init etx_driver_init(void);
 static void __exit etx_driver_exit(void);
  
+static struct workqueue_struct *own_workqueue;
+ 
+ 
+static void workqueue_fn(struct work_struct *work); 
+ 
+static DECLARE_WORK(work, workqueue_fn);
+ 
+/*Linked List Node*/
+struct my_list{
+     struct list_head list;     //linux kernel list implementation
+     int data;
+};
+ 
+/*Declare and init the head node of the linked list*/
+LIST_HEAD(Head_Node);
+ 
+/*
+** Function Prototypes
+*/ 
 /*************** Driver Fuctions **********************/
 static int etx_open(struct inode *inode, struct file *file);
 static int etx_release(struct inode *inode, struct file *file);
@@ -79,10 +68,42 @@ static ssize_t sysfs_store(struct kobject *kobj,
                 struct kobj_attribute *attr,const char *buf, size_t count);
  
 struct kobj_attribute etx_attr = __ATTR(etx_value, 0660, sysfs_show, sysfs_store);
+/******************************************************/
+ 
+ 
+/*Workqueue Function*/
+static void workqueue_fn(struct work_struct *work)
+{
+        struct my_list *temp_node = NULL;
+ 
+        printk(KERN_INFO "Executing Workqueue Function\n");
+        
+        /*Creating Node*/
+        temp_node = kmalloc(sizeof(struct my_list), GFP_KERNEL);
+ 
+        /*Assgin the data that is received*/
+        temp_node->data = etx_value;
+ 
+        /*Init the list within the struct*/
+        INIT_LIST_HEAD(&temp_node->list);
+ 
+        /*Add Node to Linked List*/
+        list_add_tail(&temp_node->list, &Head_Node);
+}
+ 
+ 
+//Interrupt handler for IRQ 11. 
+static irqreturn_t irq_handler(int irq,void *dev_id) {
+        printk(KERN_INFO "Shared IRQ: Interrupt Occurred\n");
+        /*Allocating work to queue*/
+        queue_work(own_workqueue, &work);
+        
+        return IRQ_HANDLED;
+}
 
 /*
 ** File operation sturcture
-*/
+*/ 
 static struct file_operations fops =
 {
         .owner          = THIS_MODULE,
@@ -104,12 +125,11 @@ static ssize_t sysfs_show(struct kobject *kobj,
 
 /*
 ** This fuction will be called when we write the sysfsfs file
-*/ 
+*/  
 static ssize_t sysfs_store(struct kobject *kobj, 
                 struct kobj_attribute *attr,const char *buf, size_t count)
 {
         printk(KERN_INFO "Sysfs - Write!!!\n");
-        sscanf(buf,"%d",&etx_value);
         return count;
 }
 
@@ -124,7 +144,7 @@ static int etx_open(struct inode *inode, struct file *file)
 
 /*
 ** This fuction will be called when we close the Device file
-*/  
+*/   
 static int etx_release(struct inode *inode, struct file *file)
 {
         printk(KERN_INFO "Device File Closed...!!!\n");
@@ -137,8 +157,16 @@ static int etx_release(struct inode *inode, struct file *file)
 static ssize_t etx_read(struct file *filp, 
                 char __user *buf, size_t len, loff_t *off)
 {
+        struct my_list *temp;
+        int count = 0;
         printk(KERN_INFO "Read function\n");
-        asm("int $0x3B");  // Corresponding to irq 11
+ 
+        /*Traversing Linked List and Print its Members*/
+        list_for_each_entry(temp, &Head_Node, list) {
+            printk(KERN_INFO "Node %d data = %d\n", count++, temp->data);
+        }
+ 
+        printk(KERN_INFO "Total Nodes = %d\n", count);
         return 0;
 }
 
@@ -149,12 +177,16 @@ static ssize_t etx_write(struct file *filp,
                 const char __user *buf, size_t len, loff_t *off)
 {
         printk(KERN_INFO "Write Function\n");
-        return 0;
+        /*Copying data from user space*/
+        sscanf(buf,"%d",&etx_value);
+        /* Triggering Interrupt */
+        asm("int $0x3B");  // Corresponding to irq 11
+        return len;
 }
  
 /*
 ** Module Init function
-*/ 
+*/  
 static int __init etx_driver_init(void)
 {
         /*Allocating Major number*/
@@ -162,7 +194,7 @@ static int __init etx_driver_init(void)
                 printk(KERN_INFO "Cannot allocate major number\n");
                 return -1;
         }
-        printk(KERN_INFO "Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
+        printk(KERN_INFO "Major = %d Minor = %d n",MAJOR(dev), MINOR(dev));
  
         /*Creating cdev structure*/
         cdev_init(&etx_cdev,&fops);
@@ -181,14 +213,14 @@ static int __init etx_driver_init(void)
  
         /*Creating device*/
         if(IS_ERR(device_create(dev_class,NULL,dev,NULL,"etx_device"))){
-            printk(KERN_INFO "Cannot create the Device 1\n");
+            printk(KERN_INFO "Cannot create the Device \n");
             goto r_device;
         }
  
         /*Creating a directory in /sys/kernel/ */
         kobj_ref = kobject_create_and_add("etx_sysfs",kernel_kobj);
  
-        /*Creating sysfs file for etx_value*/
+        /*Creating sysfs file*/
         if(sysfs_create_file(kobj_ref,&etx_attr.attr)){
                 printk(KERN_INFO"Cannot create sysfs file......\n");
                 goto r_sysfs;
@@ -220,10 +252,18 @@ r_class:
 }
 
 /*
-** Module exit function
+** Module Exit function
 */ 
 static void __exit etx_driver_exit(void)
 {
+ 
+        /* Go through the list and free the memory. */
+        struct my_list *cursor, *temp;
+        list_for_each_entry_safe(cursor, temp, &Head_Node, list) {
+            list_del(&cursor->list);
+            kfree(cursor);
+        }
+ 
         /* Delete workqueue */
         destroy_workqueue(own_workqueue);
         free_irq(IRQ_NO,(void *)(irq_handler));
@@ -233,7 +273,7 @@ static void __exit etx_driver_exit(void)
         class_destroy(dev_class);
         cdev_del(&etx_cdev);
         unregister_chrdev_region(dev, 1);
-        printk(KERN_INFO "Device Driver Remove...Done!!!\n");
+        printk(KERN_INFO "Device Driver Remove...Done!!\n");
 }
  
 module_init(etx_driver_init);
@@ -241,5 +281,5 @@ module_exit(etx_driver_exit);
  
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
-MODULE_DESCRIPTION("Simple Linux device driver (Own Workqueue)");
-MODULE_VERSION("1.12");
+MODULE_DESCRIPTION("A simple device driver - Kernel Linked List");
+MODULE_VERSION("1.13");

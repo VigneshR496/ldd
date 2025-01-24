@@ -1,0 +1,23 @@
+Signals are a way of notifying a process or thread about a particular event.
+
+We can send signals between user space applications (signals can also be used for ipc).
+We can send signals from user space to kernel space and vise versa.
+
+Steps to send signals from device driver to user space application:
+	Decide the signal that you want to send.
+	Register the user space application with the driver.
+	Once something happened (in our example we used interrupts) send signals to userspace.
+	Unregister the user space application when you have done with it.
+	
+get_current() api in application is used to get the pid of the running task
+
+to send signal from device driver to use space application
+	struct siginfo info; -> might be kernel_siginfo in newer kernels
+	send_sig_info(SIGETX, &info, task)
+	
+to register handler for signals in user space application:
+	struct sigaction act;
+	sigemptyset(&act.sa_mask);
+    act.sa_flags = (SA_SIGINFO | SA_RESTART);
+    act.sa_sigaction = sig_event_handler;
+    sigaction(SIGETX, &act, NULL);
